@@ -1,0 +1,7 @@
+master cles= 0LWb6jp0-LTDw-bQTE-T5nb-H1ecuwCjSH0d
+
+cles public= live_public_5CxJnJapNUqIxsvKqtKnw22ziJq
+
+cles privé= live_private_z64rtWQZZBDOqbSek1ENlSa8PdP
+
+cles token= uyXVEiTju6MoMK3NbxSV

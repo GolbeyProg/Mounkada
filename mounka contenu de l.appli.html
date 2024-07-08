@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #4CAF50;
+        }
+
+        form, #addEntryForm {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label, input, select, button {
+            margin-bottom: 10px;
+            padding: 10px;
+            font-size: 1em;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #results {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #e0f7fa;
+            border: 1px solid #4CAF50;
+            border-radius: 5px;
+        }
+
+        #progress {
+            margin-top: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .fade-in {
+            animation: fadeIn 1s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Mounkada</h1>
+        <form id="healthForm" onsubmit="return calculateBMI(event);">
+            <label for="weight">Poids (kg):</label>
+            <input type="number" id="weight" step="0.1" required>
+
+            <label for="height">Taille (m):</label>
+            <input type="number" id="height" step="0.01" required>
+
+            <label for="age">Âge:</label>
+            <input type="number" id="age" required>
+
+            <label for="gender">Sexe:</label>
+            <select id="gender" required>
+                <option value="male">Homme</option>
+                <option value="female">Femme</option>
+            </select>
+
+            <button type="submit">Calculer</button>
+        </form>
+        <div id="results"></div>
+        <div id="progress">
+            <h2>Suivi des progrès</h2>
+            <button onclick="toggleAddEntryForm()">Ajouter une entrée</button>
+            <div id="addEntryForm" style="display: none;">
+                <label for="manualWeight">Poids (kg):</label>
+                <input type="number" id="manualWeight" step="0.1">
+                <label for="manualHeight">Taille (m):</label>
+                <input type="number" id="manualHeight" step="0.01">
+                <label for="manualBMR">MB:</label>
+                <input type="number" id="manualBMR" step="0.1">
+                <button onclick="addManualEntry()">Enregistrer</button>
+            </div>
+            <table id="progressTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Poids (kg)</th>
+                        <th>Taille (m)</th>
+                        <th>IMC</th>
+                        <th>MB</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <canvas id="progressChart"></canvas>
+        </div>
+    </div>
+    <script>
+        // Function to calculate BMI value
+        function calculateBMIValue(weight, height) {
+            let bmi = weight / (height * height);
+            return bmi.toFixed(2);
+        }
+
+        // Function to calculate BMR value
+        function calculateBMRValue(weight, height, age, gender) {
+            if (gender === 'male') {
+                return (88.362 + (13.397 * weight) + (4.799 * height * 100) - (5.677 * age)).toFixed(2);
+            } else {
+                return (447.593 + (9.247 * weight) + (3.098 * height * 100) - (4.330 * age)).toFixed(2);
+            }
+        }
+
+        // Function to add manual entry to progress table
+        function addManualEntry() {
+            let manualWeight = parseFloat(document.getElementById('manualWeight').value);
+            let manualHeight = parseFloat(document.getElementById('manualHeight').value);
+            let manualBMR = parseFloat(document.getElementById('manualBMR').value);
+
+            addEntry(manualWeight, manualHeight, manualBMR);
+            clearManualEntryForm();
+        }
+
+        // Function to add an entry to the table
+        function addEntry(weight, height, bmr) {
+            let tableBody = document.querySelector('#progressTable tbody');
+            let newRow = tableBody.insertRow();
+            let dateCell = newRow.insertCell();
+            let weightCell = newRow.insertCell();
+            let heightCell = newRow.insertCell();
+            let bmiCell = newRow.insertCell();
+            let bmrCell = newRow.insertCell();
+            let actionsCell = newRow.insertCell();
+
+            let currentDate = new Date().toLocaleDateString('fr-FR');
+            dateCell.textContent = currentDate;
+            weightCell.textContent = weight.toFixed(1);
+            heightCell.textContent = height.toFixed(2);
+            bmiCell.textContent = calculateBMIValue(weight, height);
+            bmrCell.textContent = bmr.toFixed(1);
+
+            actionsCell.innerHTML = `
+                <button onclick="editEntry(this)">Modifier</button>
+                <button onclick="deleteEntry(this)">Supprimer</button>
+            `;
+
+            saveEntries();  // Save entries to localStorage after adding a new row
+        }
+
+        // Function to toggle visibility of add entry form
+        function toggleAddEntryForm() {
+            let addEntryForm = document.getElementById('addEntryForm');
+            if (addEntryForm.style.display === 'none') {
+                addEntryForm.style.display = 'block';
+            } else {
+                addEntryForm.style.display = 'none';
+            }
+        }
+
+        // Function to calculate and display BMI and BMR
+        function calculateBMI(event) {
+            event.preventDefault();
+            let weight = parseFloat(document.getElementById('weight').value);
+            let height = parseFloat(document.getElementById('height').value);
+            let age = parseInt(document.getElementById('age').value);
+            let gender = document.getElementById('gender').value;
+
+            let bmi = calculateBMIValue(weight, height);
+            let bmr = calculateBMRValue(weight, height, age, gender);
+
+            let recommendation = generateRecommendation(bmi);
+
+            document.getElementById('results').innerHTML = `
+                <p>IMC: ${bmi}</p>
+                <p>MB: ${bmr}</p>
+                <p>${recommendation}</p>
+                <button onclick="addEntry(${weight}, ${height}, ${bmr})">Enregistrer</button>
+            `;
+        }
+
+        // Function to generate recommendation based on BMI
+        function generateRecommendation(bmi) {
+            if (bmi < 18.5) {
+                return "Vous êtes en dessous du poids normal. Il est conseillé de consulter un nutritionniste pour un plan alimentaire adapté.";
+            } else if (bmi >= 18.5 && bmi < 24.9) {
+                return "Votre poids est normal. Continuez à maintenir une alimentation équilibrée et une activité physique régulière.";
+            } else if (bmi >= 25 && bmi < 29.9) {
+                return "Vous êtes en surpoids. Il est recommandé d'adopter un mode de vie plus sain avec une alimentation équilibrée et de l'exercice.";
+            } else {
+                return "Vous êtes en obésité. Il est fortement conseillé de consulter un professionnel de santé pour des conseils personnalisés.";
+            }
+        }
+
+        // Function to save entries to localStorage
+        function saveEntries() {
+            let entries = [];
+            let rows = document.querySelectorAll('#progressTable tbody tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                let cells = rows[i].cells;
+                let entry = {
+                    date: cells[0].textContent,
+                    weight: cells[1].textContent,
+                    height: cells[2].textContent,
+                    bmi: cells[3].textContent,
+                    bmr: cells[4].textContent
+                };
+                entries.push(entry);
+            }
+
+            localStorage.setItem('entries', JSON.stringify(entries));
+        }
+
+        // Function to load entries from localStorage
+        function loadEntries() {
+            let entries = JSON.parse(localStorage.getItem('entries')) || [];
+            for (let entry of entries) {
+                addEntry(parseFloat(entry.weight), parseFloat(entry.height), parseFloat(entry.bmr));
+            }
+        }
+
+        // Function to edit an entry
+        function editEntry(button) {
+            let row = button.parentNode.parentNode;
+            let cells = row.cells;
+
+            document.getElementById('manualWeight').value = cells[1].textContent;
+            document.getElementById('manualHeight').value = cells[2].textContent;
+            document.getElementById('manualBMR').value = cells[4].textContent;
+
+            deleteEntry(button);
+            toggleAddEntryForm();
+        }
+
+        // Function to delete an entry
+        function deleteEntry(button) {
+            let row = button.parentNode.parentNode;
+            row.parentNode.removeChild(row);
+            saveEntries();
+        }
+
+        // Clear manual entry form
+        function clearManualEntryForm() {
+            document.getElementById('manualWeight').value = '';
+            document.getElementById('manualHeight').value = '';
+            document.getElementById('manualBMR').value = '';
+            document.getElementById('addEntryForm').style.display = 'none';
+        }
+
+        // Load entries when the page loads
+        window.onload = function() {
+            loadEntries();
+        };
+    </script>
+</body>
+</html>
